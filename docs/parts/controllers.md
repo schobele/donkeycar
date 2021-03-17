@@ -13,12 +13,9 @@ The default controller to drive the car with your phone or browser. This has a w
 
 ## RC Controller
 If you bought an RC car then it might have come with a standard 2.4GHz car radio and receiver as shown in picture below. This can be used to drive the car. 
-
-* Hardware setup
-
 ![wiring diagram](../assets/rc.jpg)
+* Hardware setup
 Using female-to-female jumper cables connect the following pins from your RC receiver to your RPi GPIO row as showin the diagram below
-
 ![wiring diagram](../assets/rc_wiring.jpg)
 
 Any of the RC receiver's + pin should go to any of the RPi's 3v pins. Any of the receiver's - pins can go to any RPi ground pin.
