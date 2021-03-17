@@ -22,13 +22,13 @@ Using female-to-female jumper cables connect the following pins from your RC rec
 
 Any of the RC receiver's + pin should go to any of the RPi's 3v pins. Any of the receiver's - pins can go to any RPi ground pin.
 
-For the three RC channels, CH-1 is for steering, CH-2 for throttle and CH-3 is linked to a press button on the remote control. The default connections are steering - GPIO 26, throttle - GPIO 20, channel 3 (for record deletion) - GPIO 19.
+For the three RC channels, CH-1 is for steering, CH-2 for throttle and CH-3 is linked to a press button on the remote control. The default connections are steering: GPIO 26, throttle: GPIO 20, channel 3 (for record deletion): GPIO 19.
 
 * Software setup
 
-The `basic` template which you install with `donkey createcar --path ~/mycar --template basic` has and additional function `manage.py calibrate` which you should use to zero your angle and throttle PWM signal. 
+You must have `pigpio` installed. Do so with these commands: `sudo apt update && sudo apt install python3-pigpio && sudo systemctl enable pigpiod & sudo systemctl start pigpiod`
 
-You must also have `pigpio` installed. Do so with these commands: `sudo apt update && sudo apt install python3-pigpio && sudo systemctl enable pigpiod & sudo systemctl start pigpiod`
+The `basic` template which you install with `donkey createcar --path ~/mycar --template basic` has an additional function `manage.py calibrate` which you should use to zero your angle and throttle PWM signal. 
 
 > Note: The PWM signal drifts over time. Hence check your calibration regularly before starting recording.
 
