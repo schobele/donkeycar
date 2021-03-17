@@ -12,9 +12,7 @@ The default controller to drive the car with your phone or browser. This has a w
 > Note: Recently iOS has [disabled default Safari](https://www.macrumors.com/2019/02/04/ios-12-2-safari-motion-orientation-access-toggle/) access to motion control. 
 
 ## RC Controller
-If you bought an RC car then it might have come with a standard 2.4GHz car radio and receiver as in this picture. This can be used to drive the car. 
-
-![RC_receiver](../assets/RC_receiver.jpg)
+If you bought an RC car then it might have come with a standard 2.4GHz car radio and receiver as shown in picture below. This can be used to drive the car. 
 
 * Hardware setup
 
