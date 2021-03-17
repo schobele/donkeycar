@@ -11,6 +11,40 @@ The default controller to drive the car with your phone or browser. This has a w
 
 > Note: Recently iOS has [disabled default Safari](https://www.macrumors.com/2019/02/04/ios-12-2-safari-motion-orientation-access-toggle/) access to motion control. 
 
+## RC Controller
+If you bought an RC car then it might have come with a standard 2.4GHz car radio and receiver as in this picture. This can be used to drive the car. 
+
+![RC_receiver](../assets/RC_receiver.jpg)
+
+* Hardware setup
+
+![wiring diagram](../assets/rc.jpg)
+Using female-to-female jumper cables connect the following pins from your RC receiver to your RPi GPIO row as showin the diagram below
+
+![wiring diagram](../assets/rc_wiring.jpg)
+
+Any of the RC receiver's + pin should go to any of the RPi's 3v pins. Any of the receiver's - pins can go to any RPi ground pin.
+
+For the three RC channels, CH-1 is for steering, CH-2 for throttle and CH-3 is linked to a press button on the remote control. The default connections are steering - GPIO 26, throttle - GPIO 20, channel 3 (for record deletion) - GPIO 19.
+
+* Software setup
+
+The `basic` template which you install with `donkey createcar --path ~/mycar --template basic` has and additional function `manage.py calibrate` which you should use to zero your angle and throttle PWM signal. 
+
+You must also have `pigpio` installed. Do so with these commands: `sudo apt update && sudo apt install python3-pigpio && sudo systemctl enable pigpiod & sudo systemctl start pigpiod`
+
+> Note: The PWM signal drifts over time. Hence check your calibration regularly before starting recording.
+
+To use RC control, change 'USE_RC' to 'True' in your myconfig.py file in your mycar directory. If you used different GPIO pins than the above, you can set them here, too.
+  
+```#RC CONTROL
+USE_RC = True
+STEERING_RC_GPIO = 26
+THROTTLE_RC_GPIO = 20
+DATA_WIPER_RC_GPIO = 19```
+
+
+
 ## Joystick Controller
 
 Many people find it easier to control the car using a game controller. There are several parts that provide this option.
@@ -237,22 +271,6 @@ quit
 ```
 
 Now that your controller is trusted, it should automatically connect with your Raspberry Pi when they are both turned on.  If your controller fails to connect, run the bluetoothctl steps again to reconnect.
-
-## RC Controller
-If you bought an RC car then it might have come with a standard 2.4GHz car 
-radio and receiver as in this picture. This can be used to drive the car. 
-
-![RC_receiver](../assets/RC_receiver.jpg)
-
-The connectors from lift to right are (S)ignal, +, -. Just attach the +/- to a free RPi 3.3V  and ground pin or pick these up from the other end of the PCA9685. These receivers seem to work fine with 3.3V as well. It doesn't matter which +, - you are choosing. 
-
-Then connect the PWM signal pins to three wires, in this example CH1 - purple, CH2 - white, CH3 - blue. The other ends can go an any RPi GPIO, except for the +, - and SCL, SDA pins.  CH-1 is for steering, CH-2 for throttle and CH-3 is linked to a press button on the remote control. The default connections are steering - GPIO 26, throttle - GPIO 20, channel 3 (for record deletion) - GPIO 19.
-
-The `basic` template which you install with `donkey createcar --path ~/mycar --template basic` has and additional function `manage.py calibrate` which you should use to zero your angle and throttle PWM signal. 
-
-You must also have `pigpio` installed. Do so with these commands: `sudo apt update && sudo apt install python3-pigpio && sudo systemctl enable pigpiod & sudo systemctl start pigpiod`
-
-> Note: The PWM signal drifts over time. Hence check your calibration regularly before starting recording.
 
 ## Creating a New or Custom Game Controller
 
