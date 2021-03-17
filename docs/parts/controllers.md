@@ -39,9 +39,8 @@ To use RC control, change 'USE_RC' to 'True' in your myconfig.py file in your my
 USE_RC = True
 STEERING_RC_GPIO = 26
 THROTTLE_RC_GPIO = 20
-DATA_WIPER_RC_GPIO = 19```
-
-
+DATA_WIPER_RC_GPIO = 19
+```
 
 ## Joystick Controller
 
