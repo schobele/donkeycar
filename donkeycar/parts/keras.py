@@ -655,6 +655,15 @@ class KerasRNN_LSTM(KerasPilot):
         steering = outputs[0][0]
         throttle = outputs[0][1]
         return steering, throttle
+    
+    def output_shapes(self):
+        # need to cut off None from [None, 120, 160, 3] tensor shape
+        img_shape = self.get_input_shape()
+        shapes = ({'img_in': tf.TensorShape(img_shape)},
+                {'angle_out': tf.TensorShape([15]),
+                'throttle_out': tf.TensorShape([20])})
+
+        return shapes
 
 
 def rnn_lstm(seq_length=3, num_outputs=2, input_shape=(120, 160, 3)):
