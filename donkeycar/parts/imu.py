@@ -82,11 +82,11 @@ class IMU:
             print('failed to read imu!!')
             
     def run_threaded(self):
-        return self.accel['x'], self.accel['y'], self.accel['z'], self.gyro['x'], self.gyro['y'], self.gyro['z'], self.temp
+        return self.accel['x'], self.accel['y'], self.accel['z'], self.gyro['x'], self.gyro['y'], self.gyro['z'],self.mag['x'], self.mag['y'], self.mag['z'], self.temp
 
     def run(self):
         self.poll()
-        return self.accel['x'], self.accel['y'], self.accel['z'], self.gyro['x'], self.gyro['y'], self.gyro['z'], self.temp
+        return self.accel['x'], self.accel['y'], self.accel['z'], self.gyro['x'], self.gyro['y'], self.gyro['z'],self.mag['x'], self.mag['y'], self.mag['z'], self.temp
 
     def shutdown(self):
         self.on = False
@@ -95,7 +95,7 @@ class IMU:
 if __name__ == "__main__":
     iter = 0
     import sys
-    sensor_type = SENSOR_MPU6050 
+    sensor_type = SENSOR_MPU9250 
     dlp_setting = DLP_SETTING_DISABLED
     if len(sys.argv) > 1:
         sensor_type = sys.argv[1]

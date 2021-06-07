@@ -415,9 +415,10 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
     create a Keras model and return it.
     '''
     from donkeycar.parts.keras import KerasPilot, KerasCategorical, \
-        KerasLinear, KerasInferred, KerasRNN_LSTM
+        KerasLinear, KerasInferred, KerasRNN_LSTM, Keras3D_CNN
     from donkeycar.parts.tflite import TFLitePilot
     from donkeycar.parts.rcstig import RCSTIG_NVIDIA
+    from donkeycar.parts.rcstig import RCSTIG_RNN
 
 
     if model_type is None:
@@ -433,12 +434,14 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
                               throttle_range=cfg.MODEL_CATEGORICAL_MAX_THROTTLE_RANGE)
     elif model_type == 'inferred':
         kl = KerasInferred(input_shape=input_shape)
-    elif model_type == 'rnn':
-        kl = KerasRNN_LSTM()
+    elif model_type == '3d':
+        kl = Keras3D_CNN()
     elif model_type == "tflite_linear":
         kl = TFLitePilot()
     elif model_type == "rcstig":
         kl = RCSTIG_NVIDIA(input_shape=input_shape)
+    elif model_type == "rcstig_rnn":
+        kl = RCSTIG_RNN(input_shape=(3,) + input_shape)
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit
         # which causes a lot of unexpected things to happen when using TF-GPU

@@ -127,6 +127,8 @@ def train(cfg: Config, tub_paths: str, model: str = None,
 
     dataset_train = training_pipe.create_tf_data().prefetch(
         tf.data.experimental.AUTOTUNE)
+    print('!!!!')
+    print(dataset_train)
     dataset_validate = validation_pipe.create_tf_data().prefetch(
         tf.data.experimental.AUTOTUNE)
     train_size = len(training_pipe)
