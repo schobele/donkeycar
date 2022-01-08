@@ -59,7 +59,8 @@ class Tub(object):
                 elif input_type == 'image_array':
                     # Handle image array
                     image = Image.fromarray(np.uint8(value))
-                    name = Tub._image_file_name(self.manifest.current_index, key)
+                    name = Tub._image_file_name(
+                        self.manifest.current_index, key)
                     image_path = os.path.join(self.images_base_path, name)
                     image.save(image_path)
                     contents[key] = name
@@ -109,6 +110,7 @@ class TubWriter(object):
     """
     A Donkey part, which can write records to the datastore.
     """
+
     def __init__(self, base_path, inputs=[], types=[], metadata=[],
                  max_catalog_len=1000):
         self.tub = Tub(base_path, inputs, types, metadata, max_catalog_len)
@@ -138,6 +140,7 @@ class TubWiper:
     activation. A new execution requires to release of the input trigger. The
     action could result in a multiple number of executions otherwise.
     """
+
     def __init__(self, tub, num_records=20):
         """
         :param tub: tub to operate on

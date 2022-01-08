@@ -24,6 +24,7 @@ class BatchSequence(object):
     themselves to np.ndarray initially and later into the types required by
     tf.data (i.e. dictionaries or np.ndarrays).
     """
+
     def __init__(self,
                  model: KerasPilot,
                  config: Config,
@@ -115,14 +116,15 @@ def train(cfg: Config, tub_paths: str, model: str = None,
     dataset = TubDataset(config=cfg, tub_paths=all_tub_paths,
                          seq_size=kl.seq_size())
     training_records, validation_records \
-        = train_test_split(dataset.get_records(), shuffle=True,
+        = train_test_split(dataset.get_records(), shuffle=cfg.SHUFFLE_TRAIN,
                            test_size=(1. - cfg.TRAIN_TEST_SPLIT))
     print(f'Records # Training {len(training_records)}')
     print(f'Records # Validation {len(validation_records)}')
 
     # We need augmentation in validation when using crop / trapeze
     training_pipe = BatchSequence(kl, cfg, training_records, is_train=True)
-    validation_pipe = BatchSequence(kl, cfg, validation_records, is_train=False)
+    validation_pipe = BatchSequence(
+        kl, cfg, validation_records, is_train=False)
     tune = tf.data.experimental.AUTOTUNE
     dataset_train = training_pipe.create_tf_data().prefetch(tune)
     dataset_validate = validation_pipe.create_tf_data().prefetch(tune)

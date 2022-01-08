@@ -1,4 +1,4 @@
-import cv2
+#import cv2
 import numpy as np
 import logging
 import imgaug.augmenters as iaa
@@ -51,8 +51,8 @@ class Augmentations(object):
                         [lower_right, max_y],
                         [lower_left, max_y]
                     ]
-                    cv2.fillConvexPoly(mask, np.array(points, dtype=np.int32),
-                                       [255, 255, 255])
+                    # cv2.fillConvexPoly(mask, np.array(points, dtype=np.int32),
+                    #                   [255, 255, 255])
                     mask = np.asarray(mask, dtype='bool')
 
                 masked = np.multiply(image, mask)
@@ -84,10 +84,10 @@ class ImageAugmentation:
             be used only in training. """
 
         if aug_type == 'CROP':
-            logger.info(f'Creating augmentation {aug_type} with ROI_CROP ' 
+            logger.info(f'Creating augmentation {aug_type} with ROI_CROP '
                         f'L: {config.ROI_CROP_LEFT}, '
                         f'R: {config.ROI_CROP_RIGHT}, '
-                        f'B: {config.ROI_CROP_BOTTOM}, ' 
+                        f'B: {config.ROI_CROP_BOTTOM}, '
                         f'T: {config.ROI_CROP_TOP}')
 
             return Augmentations.crop(left=config.ROI_CROP_LEFT,
@@ -98,15 +98,15 @@ class ImageAugmentation:
         elif aug_type == 'TRAPEZE':
             logger.info(f'Creating augmentation {aug_type}')
             return Augmentations.trapezoidal_mask(
-                        lower_left=config.ROI_TRAPEZE_LL,
-                        lower_right=config.ROI_TRAPEZE_LR,
-                        upper_left=config.ROI_TRAPEZE_UL,
-                        upper_right=config.ROI_TRAPEZE_UR,
-                        min_y=config.ROI_TRAPEZE_MIN_Y,
-                        max_y=config.ROI_TRAPEZE_MAX_Y)
+                lower_left=config.ROI_TRAPEZE_LL,
+                lower_right=config.ROI_TRAPEZE_LR,
+                upper_left=config.ROI_TRAPEZE_UL,
+                upper_right=config.ROI_TRAPEZE_UR,
+                min_y=config.ROI_TRAPEZE_MIN_Y,
+                max_y=config.ROI_TRAPEZE_MAX_Y)
 
         elif aug_type == 'MULTIPLY':
-            interval = getattr(config, 'AUG_MULTIPLY_RANGE', (0.5, 1.5))
+            interval = getattr(config, 'AUG_MULTIPLY_RANGE', (0.7, 1.3))
             logger.info(f'Creating augmentation {aug_type} {interval}')
             return iaa.Multiply(interval)
 
@@ -115,7 +115,22 @@ class ImageAugmentation:
             logger.info(f'Creating augmentation {aug_type} {interval}')
             return iaa.GaussianBlur(sigma=interval)
 
+        elif aug_type == 'SHARPEN':
+            logger.info(f'Creating augmentation {aug_type}')
+            return iaa.Sharpen(alpha=(1.0), lightness=(1.0))
+
+        # elif aug_type == 'GRAY':
+        #     logger.info(f'Creating augmentation {aug_type}')
+        #     return iaa.ChangeColorspace(to_colorspace="GRAY")
+
+        elif aug_type == 'SIZE':
+            logger.info(f'Creating augmentation {aug_type}')
+            return iaa.Resize({"height": config.TRANSFORMATION_SIZE_H, "width": config.TRANSFORMATION_SIZE_W})
+
     # Parts interface
     def run(self, img_arr):
-        aug_img_arr = self.augmentations.augment_image(img_arr)
-        return aug_img_arr
+        try:
+            aug_img_arr = self.augmentations.augment_image(img_arr)
+            return aug_img_arr
+        except:
+            print("An exception occurred")

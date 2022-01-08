@@ -7,12 +7,14 @@ from matplotlib import cm
 try:
     from vis.utils import utils
 except:
-    raise Exception("Please install keras-vis: pip install git+https://github.com/autorope/keras-vis.git")
+    raise Exception(
+        "Please install keras-vis: pip install git+https://github.com/autorope/keras-vis.git")
 
 import donkeycar as dk
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.utils import *
 
+from donkeycar.pipeline.augmentations import ImageAugmentation
 
 DEG_TO_RAD = math.pi / 180.0
 
@@ -38,17 +40,22 @@ class MakeMovie(object):
 
         self.cfg = dk.load_config(conf)
 
+        self.augmentation = ImageAugmentation(self.cfg, 'AUGMENTATIONS')
+        self.transformation = ImageAugmentation(self.cfg, 'TRANSFORMATIONS')
+
         if args.type is None and args.model is not None:
             args.type = self.cfg.DEFAULT_MODEL_TYPE
             print("Model type not provided. Using default model type from config file")
 
         if args.salient:
             if args.model is None:
-                print("ERR>> salient visualization requires a model. Pass with the --model arg.")
+                print(
+                    "ERR>> salient visualization requires a model. Pass with the --model arg.")
                 parser.print_help()
 
             if args.type not in ['linear', 'categorical']:
-                print("Model type {} is not supported. Only linear or categorical is supported for salient visualization".format(args.type))
+                print("Model type {} is not supported. Only linear or categorical is supported for salient visualization".format(
+                    args.type))
                 parser.print_help()
                 return
 
@@ -74,10 +81,12 @@ class MakeMovie(object):
             self.keras_part = get_model_by_type(args.type, cfg=self.cfg)
             self.keras_part.load(args.model)
             if args.salient:
-                self.do_salient = self.init_salient(self.keras_part.interpreter.model)
+                self.do_salient = self.init_salient(
+                    self.keras_part.interpreter.model)
 
         print('making movie', args.out, 'from', num_frames, 'images')
-        clip = mpy.VideoClip(self.make_frame, duration=((num_frames - 1) / self.cfg.DRIVE_LOOP_HZ))
+        clip = mpy.VideoClip(self.make_frame, duration=(
+            (num_frames - 1) / self.cfg.DRIVE_LOOP_HZ))
         clip.write_videofile(args.out, fps=self.cfg.DRIVE_LOOP_HZ)
 
     @staticmethod
@@ -103,7 +112,8 @@ class MakeMovie(object):
         user_angle = float(record["user/angle"])
         user_throttle = float(record["user/throttle"])
         green = (0, 255, 0)
-        self.draw_line_into_image(user_angle, user_throttle, False, img_drawon, green)
+        self.draw_line_into_image(
+            user_angle, user_throttle, False, img_drawon, green)
 
     def draw_model_prediction(self, img, img_drawon):
         """
@@ -130,7 +140,8 @@ class MakeMovie(object):
 
         blue = (0, 0, 255)
         pilot_angle, pilot_throttle = self.keras_part.run(img)
-        self.draw_line_into_image(pilot_angle, pilot_throttle, True, img_drawon, blue)
+        self.draw_line_into_image(
+            pilot_angle, pilot_throttle, True, img_drawon, blue)
 
     def draw_steering_distribution(self, img, img_drawon):
         """
@@ -140,9 +151,10 @@ class MakeMovie(object):
         from donkeycar.parts.keras import KerasCategorical
 
         if self.keras_part is None or type(self.keras_part) is not KerasCategorical:
-            return        
+            return
         pred_img = normalize_image(img)
-        angle_binned, _ = self.keras_part.interpreter.predict(pred_img, other_arr=None)
+        angle_binned, _ = self.keras_part.interpreter.predict(
+            pred_img, other_arr=None)
 
         x = 4
         dx = 4
@@ -158,7 +170,7 @@ class MakeMovie(object):
             x += dx
 
     def init_salient(self, model):
-        # Utility to search for layer index by name. 
+        # Utility to search for layer index by name.
         # Alternatively we can specify this as -1 since it corresponds to the last layer.
         output_name = []
         layer_idx = []
@@ -174,7 +186,7 @@ class MakeMovie(object):
         print("####################")
         print("Visualizing activations on layer:", output_name)
         print("####################")
-        
+
         # ensure we have linear activation
         for li in layer_idx:
             model.layers[li].activation = activations.linear
@@ -199,7 +211,7 @@ class MakeMovie(object):
                 for p in pred:
                     maxindex = tf.math.argmax(p[0])
                     pred_list.append(p[0][maxindex])
-                    
+
         grads = 0
         for p in pred_list:
             grad = tape.gradient(p, images)
@@ -225,9 +237,11 @@ class MakeMovie(object):
 
         norm_img = normalize_image(img)
         salient_mask = self.compute_visualisation_mask(norm_img)
-        salient_mask_stacked = cm.inferno(salient_mask)[:,:,0:3]
-        salient_mask_stacked = cv2.GaussianBlur(salient_mask_stacked,(3,3),cv2.BORDER_DEFAULT)
-        blend = cv2.addWeighted(img.astype('float32'), alpha, salient_mask_stacked.astype('float32'), beta, 0)
+        salient_mask_stacked = cm.inferno(salient_mask)[:, :, 0:3]
+        salient_mask_stacked = cv2.GaussianBlur(
+            salient_mask_stacked, (3, 3), cv2.BORDER_DEFAULT)
+        blend = cv2.addWeighted(img.astype(
+            'float32'), alpha, salient_mask_stacked.astype('float32'), beta, 0)
         return blend
 
     def make_frame(self, t):
@@ -242,24 +256,30 @@ class MakeMovie(object):
             return None
 
         rec = self.iterator.next()
-        img_path = os.path.join(self.tub.images_base_path, rec['cam/image_array'])
+        img_path = os.path.join(
+            self.tub.images_base_path, rec['cam/image_array'])
         image_input = img_to_arr(Image.open(img_path))
         image = image_input
-        
+
         if self.do_salient:
             image = self.draw_salient(image_input)
-            image = cv2.normalize(src=image, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-        
-        if self.user: self.draw_user_input(rec, image_input, image)
+            image = cv2.normalize(src=image, dst=None, alpha=0,
+                                  beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        #if self.user: self.draw_user_input(rec, image_input, image)
         if self.keras_part is not None:
+
+            image_input = self.transformation.run(image_input)
+
             self.draw_model_prediction(image_input, image)
             self.draw_steering_distribution(image_input, image)
 
         if self.scale != 1:
             h, w, d = image.shape
             dsize = (w * self.scale, h * self.scale)
-            image = cv2.resize(image, dsize=dsize, interpolation=cv2.INTER_LINEAR)
-            image = cv2.GaussianBlur(image,(3,3),cv2.BORDER_DEFAULT)
+            image = cv2.resize(image, dsize=dsize,
+                               interpolation=cv2.INTER_LINEAR)
+            image = cv2.GaussianBlur(image, (3, 3), cv2.BORDER_DEFAULT)
 
         self.current += 1
         # returns a 8-bit RGB array

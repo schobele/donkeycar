@@ -1,5 +1,6 @@
 import argparse
 import os
+from re import VERBOSE
 import shutil
 import socket
 import stat
@@ -13,6 +14,9 @@ from donkeycar.management.joystick_creator import CreateJoystick
 from donkeycar.management.tub import TubManager
 from donkeycar.pipeline.types import TubRecord, TubDataset
 from donkeycar.utils import *
+
+import tensorflow as tf
+
 
 PACKAGE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 TEMPLATES_PATH = os.path.join(PACKAGE_PATH, 'templates')
@@ -29,7 +33,6 @@ def make_dir(path):
 
 
 def load_config(config_path):
-
     '''
     load a config from the given path
     '''
@@ -54,19 +57,24 @@ class BaseCommand(object):
 
 
 class CreateCar(BaseCommand):
-    
+
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='createcar', usage='%(prog)s [options]')
-        parser.add_argument('--path', default=None, help='path where to create car folder')
-        parser.add_argument('--template', default=None, help='name of car template to use')
-        parser.add_argument('--overwrite', action='store_true', help='should replace existing files')
+        parser = argparse.ArgumentParser(
+            prog='createcar', usage='%(prog)s [options]')
+        parser.add_argument('--path', default=None,
+                            help='path where to create car folder')
+        parser.add_argument('--template', default=None,
+                            help='name of car template to use')
+        parser.add_argument('--overwrite', action='store_true',
+                            help='should replace existing files')
         parsed_args = parser.parse_args(args)
         return parsed_args
-        
+
     def run(self, args):
         args = self.parse_args(args)
-        self.create_car(path=args.path, template=args.template, overwrite=args.overwrite)
-  
+        self.create_car(path=args.path, template=args.template,
+                        overwrite=args.overwrite)
+
     def create_car(self, path, template='complete', overwrite=False):
         """
         This script sets up the folder structure for donkey to work.
@@ -79,16 +87,17 @@ class CreateCar(BaseCommand):
         template = template or 'complete'
         print("Creating car folder: {}".format(path))
         path = make_dir(path)
-        
+
         print("Creating data & model folders.")
         folders = ['models', 'data', 'logs']
-        folder_paths = [os.path.join(path, f) for f in folders]   
+        folder_paths = [os.path.join(path, f) for f in folders]
         for fp in folder_paths:
             make_dir(fp)
-            
+
         # add car application and config files if they don't exist
         app_template_path = os.path.join(TEMPLATES_PATH, template+'.py')
-        config_template_path = os.path.join(TEMPLATES_PATH, 'cfg_' + template + '.py')
+        config_template_path = os.path.join(
+            TEMPLATES_PATH, 'cfg_' + template + '.py')
         myconfig_template_path = os.path.join(TEMPLATES_PATH, 'myconfig.py')
         train_template_path = os.path.join(TEMPLATES_PATH, 'train.py')
         calibrate_template_path = os.path.join(TEMPLATES_PATH, 'calibrate.py')
@@ -97,7 +106,7 @@ class CreateCar(BaseCommand):
         mycar_config_path = os.path.join(path, 'myconfig.py')
         train_app_path = os.path.join(path, 'train.py')
         calibrate_app_path = os.path.join(path, 'calibrate.py')
-        
+
         if os.path.exists(car_app_path) and not overwrite:
             print('Car app already exists. Delete it and rerun createcar to replace.')
         else:
@@ -136,11 +145,11 @@ class CreateCar(BaseCommand):
             for line in cfg:
                 if "import os" in line:
                     copy = True
-                if copy: 
+                if copy:
                     mcfg.write("# " + line)
             cfg.close()
             mcfg.close()
- 
+
         print("Donkey setup complete.")
 
 
@@ -150,46 +159,56 @@ class UpdateCar(BaseCommand):
     '''
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='update', usage='%(prog)s [options]')
-        parser.add_argument('--template', default=None, help='name of car template to use')
+        parser = argparse.ArgumentParser(
+            prog='update', usage='%(prog)s [options]')
+        parser.add_argument('--template', default=None,
+                            help='name of car template to use')
         parsed_args = parser.parse_args(args)
         return parsed_args
-        
+
     def run(self, args):
         args = self.parse_args(args)
         cc = CreateCar()
         cc.create_car(path=".", overwrite=True, template=args.template)
-        
+
 
 class FindCar(BaseCommand):
     def parse_args(self, args):
-        pass        
+        pass
 
     def run(self, args):
         print('Looking up your computer IP address...')
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8",80))
-        ip = s.getsockname()[0] 
-        print('Your IP address: %s ' %s.getsockname()[0])
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        print('Your IP address: %s ' % s.getsockname()[0])
         s.close()
-        
+
         print("Finding your car's IP address...")
-        cmd = "sudo nmap -sP " + ip + "/24 | awk '/^Nmap/{ip=$NF}/B8:27:EB/{print ip}'"
-        cmdRPi4 = "sudo nmap -sP " + ip + "/24 | awk '/^Nmap/{ip=$NF}/DC:A6:32/{print ip}'"
-        print("Your car's ip address is:" )
+        cmd = "sudo nmap -sP " + ip + \
+            "/24 | awk '/^Nmap/{ip=$NF}/B8:27:EB/{print ip}'"
+        cmdRPi4 = "sudo nmap -sP " + ip + \
+            "/24 | awk '/^Nmap/{ip=$NF}/DC:A6:32/{print ip}'"
+        print("Your car's ip address is:")
         os.system(cmd)
         os.system(cmdRPi4)
 
 
-class CalibrateCar(BaseCommand):    
-    
+class CalibrateCar(BaseCommand):
+
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='calibrate', usage='%(prog)s [options]')
-        parser.add_argument('--channel', help="The channel you'd like to calibrate [0-15]")
-        parser.add_argument('--address', default='0x40', help="The i2c address you'd like to calibrate [default 0x40]")
-        parser.add_argument('--bus', default=None, help="The i2c bus you'd like to calibrate [default autodetect]")
-        parser.add_argument('--pwmFreq', default=60, help="The frequency to use for the PWM")
-        parser.add_argument('--arduino', dest='arduino', action='store_true', help='Use arduino pin for PWM (calibrate pin=<channel>)')
+        parser = argparse.ArgumentParser(
+            prog='calibrate', usage='%(prog)s [options]')
+        parser.add_argument(
+            '--channel', help="The channel you'd like to calibrate [0-15]")
+        parser.add_argument('--address', default='0x40',
+                            help="The i2c address you'd like to calibrate [default 0x40]")
+        parser.add_argument(
+            '--bus', default=None, help="The i2c bus you'd like to calibrate [default autodetect]")
+        parser.add_argument('--pwmFreq', default=60,
+                            help="The frequency to use for the PWM")
+        parser.add_argument('--arduino', dest='arduino', action='store_true',
+                            help='Use arduino pin for PWM (calibrate pin=<channel>)')
         parser.set_defaults(arduino=False)
         parsed_args = parser.parse_args(args)
         return parsed_args
@@ -202,7 +221,7 @@ class CalibrateCar(BaseCommand):
             from donkeycar.parts.actuator import ArduinoFirmata
 
             arduino_controller = ArduinoFirmata(servo_pin=channel)
-            print('init Arduino PWM on pin %d' %(channel))
+            print('init Arduino PWM on pin %d' % (channel))
             input_prompt = "Enter a PWM setting to test ('q' for quit) (0-180): "
         else:
             from donkeycar.parts.actuator import PCA9685
@@ -214,10 +233,12 @@ class CalibrateCar(BaseCommand):
             if args.bus:
                 busnum = int(args.bus)
             address = int(args.address, 16)
-            print('init PCA9685 on channel %d address %s bus %s' %(channel, str(hex(address)), str(busnum)))
+            print('init PCA9685 on channel %d address %s bus %s' %
+                  (channel, str(hex(address)), str(busnum)))
             freq = int(args.pwmFreq)
             print("Using PWM freq: {}".format(freq))
-            c = PCA9685(channel, address=address, busnum=busnum, frequency=freq)
+            c = PCA9685(channel, address=address,
+                        busnum=busnum, frequency=freq)
             input_prompt = "Enter a PWM setting to test ('q' for quit) (0-1500): "
             print()
         while True:
@@ -227,7 +248,7 @@ class CalibrateCar(BaseCommand):
                     break
                 pmw = int(val)
                 if args.arduino == True:
-                    arduino_controller.set_pulse(channel,pmw)
+                    arduino_controller.set_pulse(channel, pmw)
                 else:
                     c.run(pmw)
             except KeyboardInterrupt:
@@ -242,21 +263,31 @@ class MakeMovieShell(BaseCommand):
     take the make movie args and then call make movie command
     with lazy imports
     '''
+
     def __init__(self):
         self.deg_to_rad = math.pi / 180.0
 
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='makemovie')
         parser.add_argument('--tub', help='The tub to make movie from')
-        parser.add_argument('--out', default='tub_movie.mp4', help='The movie filename to create. default: tub_movie.mp4')
-        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
-        parser.add_argument('--model', default=None, help='the model to use to show control outputs')
-        parser.add_argument('--type', default=None, required=False, help='the model type to load')
-        parser.add_argument('--salient', action="store_true", help='should we overlay salient map showing activations')
-        parser.add_argument('--start', type=int, default=0, help='first frame to process')
-        parser.add_argument('--end', type=int, default=-1, help='last frame to process')
-        parser.add_argument('--scale', type=int, default=2, help='make image frame output larger by X mult')
-        parser.add_argument('--draw-user-input', default=True, action='store_false', help='show user input on the video')
+        parser.add_argument('--out', default='tub_movie.mp4',
+                            help='The movie filename to create. default: tub_movie.mp4')
+        parser.add_argument(
+            '--config', default='./config.py', help=HELP_CONFIG)
+        parser.add_argument('--model', default=None,
+                            help='the model to use to show control outputs')
+        parser.add_argument('--type', default=None,
+                            required=False, help='the model type to load')
+        parser.add_argument('--salient', action="store_true",
+                            help='should we overlay salient map showing activations')
+        parser.add_argument('--start', type=int, default=0,
+                            help='first frame to process')
+        parser.add_argument('--end', type=int, default=-1,
+                            help='last frame to process')
+        parser.add_argument('--scale', type=int, default=2,
+                            help='make image frame output larger by X mult')
+        parser.add_argument('--draw-user-input', default=True,
+                            action='store_false', help='show user input on the video')
         parsed_args = parser.parse_args(args)
         return parsed_args, parser
 
@@ -275,6 +306,9 @@ class MakeMovieShell(BaseCommand):
 
 class ShowCnnActivations(BaseCommand):
 
+    def image_processor(self, img_arr):
+        return self.transformation.run(img_arr)
+
     def __init__(self):
         import matplotlib.pyplot as plt
         self.plt = plt
@@ -286,16 +320,19 @@ class ShowCnnActivations(BaseCommand):
         returns activations/features
         '''
         from tensorflow.python.keras.models import load_model, Model
+        from donkeycar.pipeline.augmentations import ImageAugmentation
 
         model_path = os.path.expanduser(model_path)
         image_path = os.path.expanduser(image_path)
 
         model = load_model(model_path, compile=False)
-        image = load_image(image_path, cfg)[None, ...]
-
+        image = load_image(image_path, cfg)
+        self.transformation = ImageAugmentation(cfg, 'TRANSFORMATIONS')
+        print(self.image_processor(image))
+        image = self.image_processor(image)[None, ...]
         conv_layer_names = self.get_conv_layers(model)
         input_layer = model.get_layer(name='img_in').input
-        activations = []      
+        activations = []
         for conv_layer_name in conv_layer_names:
             output_layer = model.get_layer(name=conv_layer_name).output
 
@@ -319,7 +356,7 @@ class ShowCnnActivations(BaseCommand):
                 self.plt.subplot(rows, cols, j + 1)
 
                 self.plt.imshow(layer[:, :, j])
-        
+
         self.plt.show()
 
     def get_conv_layers(self, model):
@@ -330,11 +367,13 @@ class ShowCnnActivations(BaseCommand):
         return conv_layers
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='cnnactivations', usage='%(prog)s [options]')
+        parser = argparse.ArgumentParser(
+            prog='cnnactivations', usage='%(prog)s [options]')
         parser.add_argument('--image', help='path to image')
         parser.add_argument('--model', default=None, help='path to model')
-        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
-        
+        parser.add_argument(
+            '--config', default='./config.py', help=HELP_CONFIG)
+
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -347,6 +386,13 @@ class ShowCnnActivations(BaseCommand):
 
 class ShowPredictionPlots(BaseCommand):
 
+    def image_processor(self, img_arr):
+        """ Transformes the images and augments if in training. Then
+            normalizes it. """
+        img_arr = self.transformation.run(img_arr)
+        norm_img = normalize_image(img_arr)
+        return norm_img
+
     def plot_predictions(self, cfg, tub_paths, model_path, limit, model_type):
         """
         Plot model predictions for angle and throttle against data from tubs.
@@ -354,6 +400,9 @@ class ShowPredictionPlots(BaseCommand):
         import matplotlib.pyplot as plt
         import pandas as pd
         from pathlib import Path
+        from donkeycar.pipeline.augmentations import ImageAugmentation
+
+        self.transformation = ImageAugmentation(cfg, 'TRANSFORMATIONS')
 
         model_path = os.path.expanduser(model_path)
         model = dk.utils.get_model_by_type(model_type, cfg)
@@ -361,35 +410,46 @@ class ShowPredictionPlots(BaseCommand):
         if model_type is None:
             model_type = cfg.DEFAULT_MODEL_TYPE
         model.load(model_path)
-
+        new_model = tf.keras.models.load_model(model_path)
+        new_model.summary()
         user_angles = []
         user_throttles = []
         pilot_angles = []
-        pilot_throttles = []       
+        pilot_throttles = []
 
         base_path = Path(os.path.expanduser(tub_paths)).absolute().as_posix()
         dataset = TubDataset(config=cfg, tub_paths=[base_path],
                              seq_size=model.seq_size())
         records = dataset.get_records()[:limit]
         bar = IncrementalBar('Inferencing', max=len(records))
-
+        evalX = []
+        evalY = []
         for tub_record in records:
             inputs = model.x_transform_and_process(
-                tub_record, lambda x: normalize_image(x))
+                tub_record, self.image_processor)
             input_dict = model.x_translate(inputs)
+            evalX.append(inputs)
             pilot_angle, pilot_throttle = \
                 model.inference_from_dict(input_dict)
-            user_angle, user_throttle = model.y_transform(tub_record)
+            user_angle = model.y_transform(tub_record)
+            evalY.append(user_angle)
             user_angles.append(user_angle)
-            user_throttles.append(user_throttle)
+            user_throttles.append(0)
             pilot_angles.append(pilot_angle)
-            pilot_throttles.append(pilot_throttle)
+            pilot_throttles.append(0)
             bar.next()
 
+        results = new_model.evaluate(
+            np.array(evalX), np.array(evalY), verbose=1, return_dict=True)
+        print(evalY)
+        print(results)
         angles_df = pd.DataFrame({'user_angle': user_angles,
                                   'pilot_angle': pilot_angles})
         throttles_df = pd.DataFrame({'user_throttle': user_throttles,
                                      'pilot_throttle': pilot_throttles})
+
+        angles_df.to_csv(
+            "/Users/leoschoberwalter/workspace/study/MasterThesis/donkey/model-zoo/final_data/" + str(model_type))
 
         fig = plt.figure()
         title = f"Model Predictions\nTubs: {tub_paths}\nModel: {model_path}\n" \
@@ -406,12 +466,17 @@ class ShowPredictionPlots(BaseCommand):
         plt.show()
 
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='tubplot', usage='%(prog)s [options]')
-        parser.add_argument('--tub', nargs='+', help='The tub to make plot from')
-        parser.add_argument('--model', default=None, help='model for predictions')
-        parser.add_argument('--limit', type=int, default=1000, help='how many records to process')
+        parser = argparse.ArgumentParser(
+            prog='tubplot', usage='%(prog)s [options]')
+        parser.add_argument('--tub', nargs='+',
+                            help='The tub to make plot from')
+        parser.add_argument('--model', default=None,
+                            help='model for predictions')
+        parser.add_argument('--limit', type=int, default=1000,
+                            help='how many records to process')
         parser.add_argument('--type', default=None, help='model type')
-        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
+        parser.add_argument(
+            '--config', default='./config.py', help=HELP_CONFIG)
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -427,11 +492,13 @@ class Train(BaseCommand):
     def parse_args(self, args):
         HELP_FRAMEWORK = 'the AI framework to use (tensorflow|pytorch). ' \
                          'Defaults to config.DEFAULT_AI_FRAMEWORK'
-        parser = argparse.ArgumentParser(prog='train', usage='%(prog)s [options]')
+        parser = argparse.ArgumentParser(
+            prog='train', usage='%(prog)s [options]')
         parser.add_argument('--tub', nargs='+', help='tub data for training')
         parser.add_argument('--model', default=None, help='output model name')
         parser.add_argument('--type', default=None, help='model type')
-        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
+        parser.add_argument(
+            '--config', default='./config.py', help=HELP_CONFIG)
         parser.add_argument('--framework',
                             choices=['tensorflow', 'pytorch', None],
                             required=False,
@@ -488,7 +555,7 @@ def execute_from_command_line():
         'train': Train,
         'ui': Gui,
     }
-    
+
     args = sys.argv[:]
 
     if len(args) > 1 and args[1] in commands.keys():
@@ -499,6 +566,6 @@ def execute_from_command_line():
         dk.utils.eprint('Usage: The available commands are:')
         dk.utils.eprint(list(commands.keys()))
 
-    
+
 if __name__ == "__main__":
     execute_from_command_line()

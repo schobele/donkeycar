@@ -176,7 +176,7 @@ class TfLite(Interpreter):
         self.input_shapes = None
         self.input_details = None
         self.output_details = None
-    
+
     def load(self, model_path):
         assert os.path.splitext(model_path)[1] == '.tflite', \
             'TFlitePilot should load only .tflite files'
@@ -214,9 +214,15 @@ class TfLite(Interpreter):
             -> Sequence[Union[float, np.ndarray]]:
         assert self.input_shapes and self.input_details, \
             "Tflite model not loaded"
-        input_arrays = (img_arr, other_arr)
+        input_arrays = (img_arr, np.array(other_arr))
         for arr, shape, detail \
                 in zip(input_arrays, self.input_shapes, self.input_details):
+            print("detail")
+            print(detail)
+            print("shape")
+            print(shape)
+            print("arr.shape")
+            print(arr.shape)
             in_data = arr.reshape(shape).astype(np.float32)
             self.interpreter.set_tensor(detail['index'], in_data)
         return self.invoke()
@@ -238,6 +244,7 @@ class TensorRT(Interpreter):
     """
     Uses TensorRT to do the inference.
     """
+
     def __init__(self):
         self.frozen_func = None
         self.input_shapes = None

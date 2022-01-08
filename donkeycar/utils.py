@@ -30,6 +30,7 @@ ONE_BYTE_SCALE = 1.0 / 255.0
 
 class EqMemorizedString:
     """ String that remembers what it was compared against """
+
     def __init__(self, string):
         self.string = string
         self.mem = set()
@@ -52,7 +53,7 @@ def scale(im, size=128):
     accepts: PIL image, size of square sides
     returns: PIL image scaled so sides length == size
     """
-    size = (size,size)
+    size = (size, size)
     im.thumbnail(size, Image.ANTIALIAS)
     return im
 
@@ -175,7 +176,7 @@ def load_pil_image(filename, cfg):
 
         if cfg.IMAGE_DEPTH == 1:
             img = img.convert('L')
-        
+
         return img
 
     except Exception as e:
@@ -205,6 +206,7 @@ def load_image(filename, cfg):
 
     return img_arr
 
+
 '''
 FILES
 '''
@@ -230,7 +232,7 @@ def zip_dir(dir_path, zip_path):
     """
     Create and save a zipfile of a one level directory
     """
-    file_paths = glob.glob(dir_path + "/*") #create path to search for files.
+    file_paths = glob.glob(dir_path + "/*")  # create path to search for files.
 
     zf = zipfile.ZipFile(zip_path, 'w')
     dir_name = os.path.basename(dir_path)
@@ -239,7 +241,6 @@ def zip_dir(dir_path, zip_path):
         zf.write(p, arcname=os.path.join(dir_name, file_name))
     zf.close()
     return zip_path
-
 
 
 '''
@@ -306,7 +307,8 @@ def map_range_float(x, X_min, X_max, Y_min, Y_max):
 
     # print("y= {}".format(y))
 
-    return round(y,2)
+    return round(y, 2)
+
 
 '''
 ANGLES
@@ -327,6 +329,7 @@ DEG_TO_RAD = math.pi / 180.0
 def deg2rad(theta):
     return theta * DEG_TO_RAD
 
+
 '''
 VECTORS
 '''
@@ -345,6 +348,7 @@ def my_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(('192.0.0.8', 1027))
     return s.getsockname()[0]
+
 
 '''
 THROTTLE
@@ -367,6 +371,7 @@ def throttle(input_value):
     decay = math.exp(magnitude * EXP_SCALING_FACTOR)
     dampening = DAMPENING * magnitude
     return ((1 / decay) - dampening)
+
 
 '''
 OTHER
@@ -399,11 +404,12 @@ def param_gen(params):
     a list of dictionary with the permutations of the parameters.
     '''
     for p in itertools.product(*params.values()):
-        yield dict(zip(params.keys(), p ))
+        yield dict(zip(params.keys(), p))
 
 
 def run_shell_command(cmd, cwd=None, timeout=15):
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, cwd=cwd)
     out = []
     err = []
 
@@ -435,7 +441,7 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
     '''
     from donkeycar.parts.keras import KerasCategorical, KerasLinear, \
         KerasInferred, KerasIMU, KerasMemory, KerasBehavioral, KerasLocalizer, \
-        KerasLSTM, Keras3D_CNN
+        KerasLSTM, Keras3D_CNN, KerasConditionalImitation, ConditionalImitations, PilotNet, CondCmdLSTM, ConditionalImitationsStacked, Cond_Keras3D_CNN
     from donkeycar.parts.interpreter import KerasInterpreter, TfLite, TensorRT
 
     if model_type is None:
@@ -474,15 +480,40 @@ def get_model_by_type(model_type: str, cfg: 'Config') -> 'KerasPilot':
             input_shape=input_shape,
             throttle_range=cfg.MODEL_CATEGORICAL_MAX_THROTTLE_RANGE,
             num_behavior_inputs=len(cfg.BEHAVIOR_LIST))
+    elif used_model_type == "conditional_imitation":
+        kl = ConditionalImitations(
+            interpreter=interpreter,
+            input_shape=(66, 200, 3),
+            throttle_range=cfg.MODEL_CATEGORICAL_MAX_THROTTLE_RANGE,
+            num_behavior_inputs=len(cfg.BEHAVIOR_LIST))
+    elif used_model_type == "pilotnet":
+        kl = PilotNet(
+            interpreter=interpreter,
+            input_shape=(66, 200, 3))
+    elif used_model_type == "conditional":
+        kl = KerasConditionalImitation(
+            interpreter=interpreter,
+            input_shape=input_shape,
+            throttle_range=cfg.MODEL_CATEGORICAL_MAX_THROTTLE_RANGE,
+            num_conditional_inputs=1)
     elif used_model_type == 'localizer':
         kl = KerasLocalizer(interpreter=interpreter, input_shape=input_shape,
                             num_locations=cfg.NUM_LOCATIONS)
     elif used_model_type == 'rnn':
-        kl = KerasLSTM(interpreter=interpreter, input_shape=input_shape,
+        kl = KerasLSTM(interpreter=interpreter, input_shape=(66, 200, 3),
                        seq_length=cfg.SEQUENCE_LENGTH)
+    elif used_model_type == 'condrnn':
+        kl = CondCmdLSTM(interpreter=interpreter, input_shape=(66, 200, 3),
+                         seq_length=cfg.SEQUENCE_LENGTH, num_behavior_inputs=len(cfg.BEHAVIOR_LIST))
+    elif used_model_type == 'condstacked':
+        kl = ConditionalImitationsStacked(interpreter=interpreter, input_shape=(66, 200, 3),
+                                          num_behavior_inputs=len(cfg.BEHAVIOR_LIST))
     elif used_model_type == '3d':
-        kl = Keras3D_CNN(interpreter=interpreter, input_shape=input_shape,
+        kl = Keras3D_CNN(interpreter=interpreter, input_shape=(66, 200, 3),
                          seq_length=cfg.SEQUENCE_LENGTH)
+    elif used_model_type == 'cond3d':
+        kl = Cond_Keras3D_CNN(interpreter=interpreter, input_shape=(66, 200, 3),
+                              seq_length=cfg.SEQUENCE_LENGTH)
     else:
         known = [k + u for k in ('', 'tflite_', 'tensorrt_')
                  for u in used_model_type.mem]
